@@ -1,53 +1,49 @@
 package com.jrocha.teclado;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.provider.Settings;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
-public class SettingsActivity extends Activity {
+public class SettingsActivity extends BaseTela {
 
-    @Override protected void onCreate(Bundle b) {
-        super.onCreate(b);
+    @Override protected String titulo() { return "JR Teclado"; }
+
+    View.OnClickListener sub(final String tela) {
+        return v -> {
+            Intent i = new Intent(this, SubTelaActivity.class);
+            i.putExtra("tela", tela);
+            startActivity(i);
+        };
     }
 
-    @Override protected void onResume() {
-        super.onResume();
-        montar();
-    }
-
-    void abrir(String tela) {
-        Intent i = new Intent(this, TelaActivity.class);
-        i.putExtra("tela", tela);
-        startActivity(i);
-    }
-
-    void montar() {
-        Ui.Tela t = Ui.tela(this, "JR Teclado", null);
-        LinearLayout c1 = Ui.card(t.col);
-        Ui.add(c1, Ui.item(this, "1. Ativar teclado", "Ativar nas configurações do Android",
+    @Override protected void construir() {
+        LinearLayout c1 = Ui.cartao(this);
+        Ui.add(c1, Ui.item(this, "Ativar teclado", "Habilitar o JR Teclado no Android",
             v -> startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))));
-        Ui.add(c1, Ui.item(this, "2. Selecionar teclado", "Escolher o JR Teclado agora",
+        Ui.add(c1, Ui.item(this, "Selecionar teclado", "Escolher o JR Teclado agora",
             v -> ((InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker()));
+        col.addView(c1);
 
-        Ui.secao(t.col, "PERSONALIZAÇÃO");
-        LinearLayout c2 = Ui.card(t.col);
-        Ui.add(c2, Ui.item(this, "Temas", TemaStore.atual(this).nome,
+        LinearLayout c2 = Ui.cartao(this);
+        Ui.add(c2, Ui.item(this, "Temas", Tema.selecionado(sp).nome,
             v -> startActivity(new Intent(this, TemasActivity.class))));
-        Ui.add(c2, Ui.item(this, "Aparência", "Altura, efeitos, teclado flutuante", v -> abrir("aparencia")));
-        Ui.add(c2, Ui.item(this, "Fontes", "Fonte das teclas, arquivo .ttf/.otf", v -> abrir("fontes")));
-        Ui.add(c2, Ui.item(this, "Som e vibração", "Som das teclas, volume, vibração", v -> abrir("som")));
+        Ui.add(c2, Ui.item(this, "Aparência", "Altura, margens, animação", sub("aparencia")));
+        Ui.add(c2, Ui.item(this, "Som e vibração", "Som das teclas, volume", sub("som")));
+        Ui.add(c2, Ui.item(this, "Teclas e fontes", "Fonte das teclas, estilo do texto", sub("fonte")));
+        Ui.add(c2, Ui.item(this, "Teclado flutuante", "Ativar, tamanho e posição", sub("flutuante")));
+        col.addView(c2);
 
-        Ui.secao(t.col, "TESTE");
-        LinearLayout c3 = Ui.card(t.col);
+        col.addView(Ui.secao(this, "Teste"));
+        LinearLayout c3 = Ui.cartao(this);
         EditText et = new EditText(this);
         et.setHint("Toque aqui para testar o teclado");
+        et.setTextColor(Ui.TXT);
         et.setHintTextColor(Ui.SUB);
-        et.setTextColor(Ui.TEXTO);
         c3.addView(et);
+        col.addView(c3);
     }
 }
