@@ -3,6 +3,7 @@
     <application
         android:label="@string/app_name"
         android:icon="@android:drawable/ic_menu_edit"
+        android:theme="@style/AppTheme"
         android:allowBackup="true">
         <activity android:name=".SettingsActivity" android:exported="true">
             <intent-filter>
@@ -10,6 +11,9 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".TemasActivity" android:exported="false"/>
+        <activity android:name=".EditorTemaActivity" android:exported="false"/>
+        <activity android:name=".TelaActivity" android:exported="false"/>
         <service android:name=".TecladoService"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_INPUT_METHOD"
