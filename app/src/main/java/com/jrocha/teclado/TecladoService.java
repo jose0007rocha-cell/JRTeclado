@@ -42,6 +42,7 @@ public class TecladoService extends InputMethodService {
     SharedPreferences sp;
     Tema tema;
     Typeface tf = Typeface.SANS_SERIF;
+    float escW = 1f, escH = 1f;
     int estilo = 0, modo = 0; // modo: 0 letras, 1 simbolos, 2 simbolos2, 3 emoji
     boolean shift = false, caps = false, flutuante = false;
     long ultimoShift = 0;
@@ -84,6 +85,9 @@ public class TecladoService extends InputMethodService {
         flutuante = sp.getBoolean("flutuante", false);
         estilo = sp.getInt("estilo", 0);
         tf = carregarFonte();
+        int sw0 = getResources().getDisplayMetrics().widthPixels;
+        escH = flutuante ? sp.getFloat("fesc", 1f) : 1f;
+        escW = flutuante ? Math.max(.7f, Math.min(1.5f, larguraFlutuante() / (sw0 * .9f))) : 1f;
         File f = new File(getFilesDir(), "som_custom");
         if (f.exists() && f.lastModified() != soundStamp) {
             if (soundId != 0) pool.unload(soundId);
@@ -146,16 +150,34 @@ public class TecladoService extends InputMethodService {
             ((ViewGroup) holder.getParent()).removeView(holder);
     }
 
+    int larguraFlutuante() {
+        int sw = getResources().getDisplayMetrics().widthPixels;
+        int w = sp.getInt("fw", (int) (sw * 0.9f));
+        return Math.max((int) (sw * 0.5f), Math.min(sw, w));
+    }
+
+    GradientDrawable fundoGeral() {
+        GradientDrawable g;
+        if (sp.getBoolean("efeitos", true))
+            g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{tema.bg, Tema.escurecer(tema.bg, tema.efeito == 1 ? 0.04f : 0.25f)});
+        else
+            g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{tema.bg, tema.bg});
+        return g;
+    }
+
     void mostrarFlutuante() {
         fecharFlutuante();
         if (host == null || host.getWindowToken() == null) return;
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        GradientDrawable bgd = new GradientDrawable();
-        bgd.setColor(tema.bg);
-        bgd.setCornerRadius(dp(16));
+        final int sw = getResources().getDisplayMetrics().widthPixels;
+        final FrameLayout box = new FrameLayout(this);
+        GradientDrawable bgd = fundoGeral();
+        bgd.setCornerRadius(dp(18));
         bgd.setStroke(dp(1), tema.accent);
         box.setBackground(bgd);
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(dp(8), dp(4), dp(8), dp(8));
         TextView alca = new TextView(this);
         alca.setText("≡   arraste   ≡");
         alca.setGravity(Gravity.CENTER);
@@ -179,16 +201,70 @@ public class TecladoService extends InputMethodService {
             }
             return true;
         });
-        box.addView(alca);
+        col.addView(alca);
         if (holder.getParent() != null) ((ViewGroup) holder.getParent()).removeView(holder);
-        box.addView(holder, new LinearLayout.LayoutParams(-1, -2));
-        int w = (int) (getResources().getDisplayMetrics().widthPixels * 0.9f);
-        popup = new PopupWindow(box, w, ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        col.addView(holder, new LinearLayout.LayoutParams(-1, -2));
+        box.addView(col, new FrameLayout.LayoutParams(-1, -2));
+        final int[] larg = {larguraFlutuante()};
+        for (int c = 0; c < 4; c++) box.addView(canto(c, box, pos, larg, sw));
+        popup = new PopupWindow(box, larg[0], ViewGroup.LayoutParams.WRAP_CONTENT, false);
         popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
         popup.setClippingEnabled(false);
         try {
             popup.showAtLocation(host, Gravity.BOTTOM | Gravity.START, pos[0], pos[1]);
         } catch (Exception e) { }
+    }
+
+    View canto(final int c, final FrameLayout box, final int[] pos, final int[] larg, final int sw) {
+        CantoView v = new CantoView(this, c, tema.accent);
+        int g = c == 0 ? (Gravity.TOP | Gravity.START)
+              : c == 1 ? (Gravity.TOP | Gravity.END)
+              : c == 2 ? (Gravity.BOTTOM | Gravity.START)
+              : (Gravity.BOTTOM | Gravity.END);
+        v.setLayoutParams(new FrameLayout.LayoutParams(dp(30), dp(30), g));
+        final boolean dir = (c == 1 || c == 3), baixo = (c == 2 || c == 3);
+        final float[] last = new float[2];
+        final long[] t0 = new long[1];
+        v.setOnTouchListener((x, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    last[0] = e.getRawX(); last[1] = e.getRawY();
+                    return true;
+                case MotionEvent.ACTION_MOVE: {
+                    float dx = e.getRawX() - last[0], dy = e.getRawY() - last[1];
+                    last[0] = e.getRawX(); last[1] = e.getRawY();
+                    int novo = Math.max((int) (sw * 0.5f), Math.min(sw, larg[0] + (int) (dir ? dx : -dx)));
+                    int cresc = novo - larg[0];
+                    larg[0] = novo;
+                    if (!dir) pos[0] -= cresc;
+                    pos[0] = Math.max(0, Math.min(sw - larg[0], pos[0]));
+                    float H = Math.max(1f, box.getHeight());
+                    float dh = baixo ? dy : -dy;
+                    if (baixo) pos[1] = Math.max(0, pos[1] - (int) dy);
+                    escH = Math.max(.7f, Math.min(1.8f, escH * (1f + dh / (0.75f * H))));
+                    escW = Math.max(.7f, Math.min(1.5f, larg[0] / (sw * .9f)));
+                    if (popup != null) popup.update(pos[0], pos[1], larg[0], -1);
+                    long now = System.currentTimeMillis();
+                    if (now - t0[0] > 60) { t0[0] = now; render(); }
+                    return true;
+                }
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    sp.edit().putInt("fx", pos[0]).putInt("fy", pos[1])
+                        .putInt("fw", larg[0]).putFloat("fesc", escH).apply();
+                    render();
+                    return true;
+            }
+            return true;
+        });
+        return v;
+    }
+
+    void pressAnim(View v, MotionEvent e) {
+        if (!sp.getBoolean("efeitos", true)) return;
+        int a = e.getActionMasked();
+        if (a == MotionEvent.ACTION_DOWN) v.animate().scaleX(.93f).scaleY(.93f).setDuration(50).start();
+        else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) v.animate().scaleX(1f).scaleY(1f).setDuration(90).start();
     }
 
     void alternarFlutuante() {
@@ -208,7 +284,7 @@ public class TecladoService extends InputMethodService {
     LinearLayout construirTeclado() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(flutuante ? Color.TRANSPARENT : tema.bg);
+        if (flutuante) root.setBackgroundColor(Color.TRANSPARENT); else root.setBackground(fundoGeral());
         root.setPadding(dp(3), dp(3), dp(3), dp(6));
         root.addView(barraEstilos());
         root.addView(barraFerramentas());
@@ -228,7 +304,7 @@ public class TecladoService extends InputMethodService {
             TextView c = new TextView(this);
             c.setText(ESTILOS[i]);
             c.setTypeface(tf);
-            c.setTextSize(15);
+            c.setTextSize(15 * escW);
             c.setPadding(dp(14), dp(6), dp(14), dp(6));
             boolean sel = (i == estilo);
             c.setTextColor(sel ? tema.accent : tema.text);
@@ -300,18 +376,22 @@ public class TecladoService extends InputMethodService {
 
     View tecla(String rotulo, String dica, float peso, boolean especial, View.OnClickListener ck) {
         FrameLayout f = new FrameLayout(this);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(sp.getInt("altura", 48)), peso);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, (int) (dp(sp.getInt("altura", 48)) * escH), peso);
         lp.setMargins(dp(2), dp(3), dp(2), dp(3));
         f.setLayoutParams(lp);
-        StateListDrawable s = new StateListDrawable();
-        s.addState(new int[]{android.R.attr.state_pressed}, forma(tema.keyPressed));
-        s.addState(new int[]{}, forma(especial ? tema.special : tema.key));
-        f.setBackground(s);
+        if (sp.getBoolean("efeitos", true)) {
+            f.setBackground(new TeclaDrawable(tema, especial, getResources().getDisplayMetrics().density));
+        } else {
+            StateListDrawable s = new StateListDrawable();
+            s.addState(new int[]{android.R.attr.state_pressed}, forma(tema.keyPressed));
+            s.addState(new int[]{}, forma(especial ? tema.special : tema.key));
+            f.setBackground(s);
+        }
         TextView t = new TextView(this);
         t.setText(rotulo);
         t.setTextColor(especial ? tema.accent : tema.text);
         t.setTypeface(tf);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, rotulo.length() > 2 ? 13 : 20);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, (rotulo.length() > 2 ? 13 : 20) * escW);
         t.setGravity(Gravity.CENTER);
         t.setSingleLine(true);
         f.addView(t, new FrameLayout.LayoutParams(-1, -1));
@@ -324,6 +404,7 @@ public class TecladoService extends InputMethodService {
             d.setPadding(0, dp(2), 0, 0);
             f.addView(d, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
         }
+        f.setOnTouchListener((v, e) -> { pressAnim(v, e); return false; });
         if (ck != null) f.setOnClickListener(v -> { feedback(v); ck.onClick(v); });
         return f;
     }
@@ -353,6 +434,7 @@ public class TecladoService extends InputMethodService {
         View k = tecla("⌫", null, 1.5f, true, null);
         k.setClickable(true);
         k.setOnTouchListener((v, e) -> {
+            pressAnim(v, e);
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     feedback(v); apagar(); h.postDelayed(repApagar, 400); break;

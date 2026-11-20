@@ -75,6 +75,16 @@ public class SettingsActivity extends Activity {
         fl.setOnCheckedChangeListener((x, on) -> sp.edit().putBoolean("flutuante", on).apply());
         col.addView(fl);
 
+        Switch ef = new Switch(this);
+        ef.setText("Efeitos visuais nas teclas (brilho, relevo)");
+        ef.setChecked(sp.getBoolean("efeitos", true));
+        ef.setOnCheckedChangeListener((x, on) -> sp.edit().putBoolean("efeitos", on).apply());
+        col.addView(ef);
+        botao("Resetar tamanho e posição do flutuante", v -> {
+            sp.edit().remove("fw").remove("fesc").remove("fx").remove("fy").apply();
+            Toast.makeText(this, "Resetado", Toast.LENGTH_SHORT).show();
+        });
+
         titulo("Teste", 18);
         EditText et = new EditText(this);
         et.setHint("Toque aqui para testar o teclado");
