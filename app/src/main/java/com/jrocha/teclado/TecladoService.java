@@ -74,7 +74,8 @@ public class TecladoService extends InputMethodService {
     String palavraPedida = "";
     List<View> cantos = new ArrayList<>();
     FrameLayout overlay;
-    View bolha, opcoesView;
+    View bolha;
+    LinearLayout opcoesView;
     int opcSel = -1;
     boolean ativo = false;
     SharedPreferences.OnSharedPreferenceChangeListener prefL;
