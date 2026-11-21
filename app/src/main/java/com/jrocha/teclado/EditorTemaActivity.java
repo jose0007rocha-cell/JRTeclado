@@ -1,6 +1,9 @@
 package com.jrocha.teclado;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.inputmethod.InputMethodManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -16,7 +19,16 @@ public class EditorTemaActivity extends BaseTela {
     @Override protected String titulo() { return "Novo tema"; }
     @Override protected boolean recarregarAoVoltar() { return false; }
 
+    IconeView iconeTeclado;
+    EditText ponte;
+    boolean previaAtiva = false;
+
     @Override protected View acaoTopo() {
+        LinearLayout l = new LinearLayout(this);
+        l.setGravity(Gravity.CENTER_VERTICAL);
+        iconeTeclado = new IconeView(this, 7, Ui.TXT, false);
+        iconeTeclado.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 48), Ui.dp(this, 40)));
+        iconeTeclado.setOnClickListener(v -> alternarPrevia());
         TextView ok = new TextView(this);
         ok.setText("✓");
         ok.setTextSize(26);
@@ -26,7 +38,40 @@ public class EditorTemaActivity extends BaseTela {
             if (t != null) sp.edit().putString("tema_id", t.id).apply();
             finish();
         });
-        return ok;
+        l.addView(iconeTeclado);
+        l.addView(ok);
+        return l;
+    }
+
+    void alternarPrevia() {
+        if (t == null || ponte == null) return;
+        previaAtiva = !previaAtiva;
+        iconeTeclado.setSel(previaAtiva);
+        final InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (previaAtiva) {
+            sp.edit().putString("tema_previa", t.id).putBoolean("flutuante_previa", true).apply();
+            ponte.requestFocus();
+            ponte.postDelayed(() -> imm.showSoftInput(ponte, 0), 120);
+        } else {
+            limparPrevia();
+        }
+    }
+
+    void limparPrevia() {
+        sp.edit().remove("tema_previa").remove("flutuante_previa").apply();
+        if (ponte != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(ponte.getWindowToken(), 0);
+        }
+    }
+
+    @Override protected void onStop() {
+        super.onStop();
+        if (previaAtiva) {
+            previaAtiva = false;
+            if (iconeTeclado != null) iconeTeclado.setSel(false);
+            limparPrevia();
+        }
     }
 
     @Override protected void onCreate(Bundle b) {
@@ -59,6 +104,10 @@ public class EditorTemaActivity extends BaseTela {
 
     @Override protected void construir() {
         if (t == null) return;
+        ponte = new EditText(this);
+        ponte.setBackground(null);
+        ponte.setLayoutParams(new LinearLayout.LayoutParams(1, 1));
+        col.addView(ponte);
         previewHolder = new FrameLayout(this);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.setMargins(0, Ui.dp(this, 6), 0, Ui.dp(this, 6));
@@ -100,7 +149,7 @@ public class EditorTemaActivity extends BaseTela {
         col.addView(Ui.secao(this, "Aparência das teclas"));
         LinearLayout ca = Ui.cartao(this);
         Ui.add(ca, Ui.switchItem(this, "Raio dos cantos personalizado", null, t.raioCustom, on -> { t.raioCustom = on; alterado(true); }));
-        Ui.add(ca, Ui.seekItem(this, "Raio dos cantos", 0, 40, t.raio, " dp", x -> { t.raio = x; alterado(true); }));
+        Ui.add(ca, Ui.seekItem(this, "Raio dos cantos", 0, 100, t.raio, "%", x -> { t.raio = x; alterado(true); }));
         Ui.add(ca, Ui.switchItem(this, "Contorno da tecla", null, t.contorno, on -> { t.contorno = on; alterado(true); }));
         Ui.add(ca, Ui.corItem(this, "Cor do contorno", t.corContorno, x -> { t.corContorno = x; alterado(true); }));
         Ui.add(ca, Ui.seekItem(this, "Largura do contorno", 1, 6, t.contornoLargura, " dp", x -> { t.contornoLargura = x; alterado(true); }));
@@ -119,13 +168,5 @@ public class EditorTemaActivity extends BaseTela {
         Ui.add(cd, Ui.corItem(this, "Brilho, contorno ao tocar e alça", t.accent, x -> { t.accent = x; alterado(true); }));
         col.addView(cd);
 
-        col.addView(Ui.secao(this, "Teste"));
-        LinearLayout ct = Ui.cartao(this);
-        EditText teste = new EditText(this);
-        teste.setHint("Toque para testar (use ✓ para aplicar o tema)");
-        teste.setTextColor(Ui.TXT);
-        teste.setHintTextColor(Ui.SUB);
-        ct.addView(teste);
-        col.addView(ct);
     }
 }

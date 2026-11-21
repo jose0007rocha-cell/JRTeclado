@@ -58,7 +58,7 @@ public class Tema {
             o.put("id", id); o.put("nome", nome); o.put("bg", bg); o.put("bgGrad", bgGrad);
             o.put("accent", accent); o.put("estilo", estilo); o.put("raio", raio);
             o.put("contorno", contorno); o.put("corContorno", corContorno);
-            o.put("raioCustom", raioCustom); o.put("contornoLargura", contornoLargura);
+            o.put("raioV2", true); o.put("raioCustom", raioCustom); o.put("contornoLargura", contornoLargura);
             o.put("barraCor", barraCor); o.put("barraAlpha", barraAlpha); o.put("barraTexto", barraTexto);
             o.put("efeito", efeito);
             o.put("p", principal.toJson()); o.put("f", funcao.toJson());
@@ -72,7 +72,7 @@ public class Tema {
         t.id = o.optString("id", "c0"); t.nome = o.optString("nome", "Tema");
         t.bg = o.optInt("bg", 0xFF222222); t.bgGrad = o.optBoolean("bgGrad", false);
         t.accent = o.optInt("accent", 0xFFB584FF); t.estilo = o.optInt("estilo", 0);
-        t.raio = o.optInt("raio", 12); t.contorno = o.optBoolean("contorno", false);
+        t.raio = o.has("raioV2") ? o.optInt("raio", 70) : Math.min(100, Math.round(o.optInt("raio", 12) * 100f / 17f)); t.contorno = o.optBoolean("contorno", false);
         t.corContorno = o.optInt("corContorno", 0xFF555555);
         t.raioCustom = o.optBoolean("raioCustom", true);
         t.contornoLargura = o.optInt("contornoLargura", 1);
@@ -112,12 +112,12 @@ public class Tema {
     }
 
     public static final Tema[] PRONTOS = {
-        pronto("b0", "Neon Roxo", 0xFF2B2738, true, 0xFF1B1824, 0xFF1F1C2B, 0xFFFFFFFF, 0xFFB584FF, true, 0xFF4B4560, 12, 1),
-        pronto("b1", "Claro Suave", 0xFFF4F4FC, false, 0xFFE8E9F8, 0xFFE2E4F6, 0xFF4B4F8F, 0xFFE8793A, false, 0xFFFFFFFF, 12, 2),
-        pronto("b2", "Escuro Pílula", 0xFF2A2A2A, true, 0xFF3B3B3D, 0xFF343436, 0xFFFFFFFF, 0xFFFFA000, false, 0x00000000, 40, 3)
+        pronto("b0", "Neon Roxo", 0xFF2B2738, true, 0xFF1B1824, 0xFF1F1C2B, 0xFFFFFFFF, 0xFFB584FF, true, 0xFF4B4560, 70, 1),
+        pronto("b1", "Claro Suave", 0xFFF4F4FC, false, 0xFFE8E9F8, 0xFFE2E4F6, 0xFF4B4F8F, 0xFFE8793A, false, 0xFFFFFFFF, 70, 2),
+        pronto("b2", "Escuro Pílula", 0xFF2A2A2A, true, 0xFF3B3B3D, 0xFF343436, 0xFFFFFFFF, 0xFFFFA000, false, 0x00000000, 100, 3)
     };
 
-    public int raioEf() { return raioCustom ? raio : 12; }
+    public int raioEf() { return raioCustom ? raio : 70; }
 
     public boolean ePronto() { return id.startsWith("b"); }
 

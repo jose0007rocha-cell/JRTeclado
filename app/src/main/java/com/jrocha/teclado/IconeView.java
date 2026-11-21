@@ -13,6 +13,9 @@ public class IconeView extends View {
     final int tipo, cor;
     final boolean fundo;
     final float d;
+    boolean sel = false;
+
+    public void setSel(boolean b) { sel = b; invalidate(); }
     final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
     final RectF r = new RectF();
     final Path path = new Path();
@@ -32,7 +35,7 @@ public class IconeView extends View {
             p.setColor(Tema.comAlpha(cor, 45));
             c.drawCircle(cx, cy, Math.min(getHeight() / 2f - 2 * d, 19 * d), p);
         }
-        p.setColor(cor);
+        p.setColor(sel ? Ui.ACC : cor);
         switch (tipo) {
             case 0: {
                 p.setStyle(Paint.Style.FILL);
@@ -103,6 +106,19 @@ public class IconeView extends View {
                 path.lineTo(cx, cy + 4 * d);
                 path.lineTo(cx + 7 * d, cy - 3 * d);
                 c.drawPath(path, p);
+                break;
+            }
+            case 7: {
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(2 * d);
+                r.set(cx - 11 * d, cy - 8 * d, cx + 11 * d, cy + 8 * d);
+                c.drawRoundRect(r, 3 * d, 3 * d, p);
+                p.setStyle(Paint.Style.FILL);
+                for (int i = 0; i < 5; i++) c.drawCircle(cx - 7 * d + i * 3.5f * d, cy - 3.5f * d, 1.1f * d, p);
+                for (int i = 0; i < 4; i++) c.drawCircle(cx - 5.2f * d + i * 3.5f * d, cy, 1.1f * d, p);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(1.8f * d);
+                c.drawLine(cx - 5 * d, cy + 4 * d, cx + 5 * d, cy + 4 * d, p);
                 break;
             }
             default: {

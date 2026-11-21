@@ -44,10 +44,10 @@ public class TeclaDrawable extends Drawable {
     @Override public void draw(Canvas c) {
         Rect b = getBounds();
         float w = b.width(), h = b.height();
-        float rad = Math.min(t.raioEf() * d, Math.min(w, h) / 2f);
         float m = (t.estilo == 2 ? 4 : 1.5f) * d;
         float baixo = (t.estilo == 3 && g.sombra) ? 2 * d : 0;
         r.set(b.left + m, b.top + m, b.right - m, b.bottom - m - baixo);
+        float rad = Math.min(r.width(), r.height()) / 2f * t.raioEf() / 100f;
         p.setStyle(Paint.Style.FILL);
         p.setShader(null);
 

@@ -33,7 +33,8 @@ public class SettingsActivity extends BaseTela {
             v -> startActivity(new Intent(this, TemasActivity.class))));
         Ui.add(c2, Ui.item(this, "Aparência", "Altura, margens, animação", sub("aparencia")));
         Ui.add(c2, Ui.item(this, "Som e vibração", "Som das teclas, volume", sub("som")));
-        Ui.add(c2, Ui.item(this, "Teclas e fontes", "Fonte das teclas, estilo do texto", sub("fonte")));
+        Ui.add(c2, Ui.item(this, "Teclas", "Cursor, linha numérica, popup, ajuste automático", sub("teclas")));
+        Ui.add(c2, Ui.item(this, "Fontes", "Fonte das teclas, estilo do texto", sub("fonte")));
         Ui.add(c2, Ui.item(this, "Teclado flutuante", "Ativar, tamanho e posição", sub("flutuante")));
         col.addView(c2);
 

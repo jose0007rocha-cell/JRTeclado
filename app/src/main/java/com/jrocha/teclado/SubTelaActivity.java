@@ -22,7 +22,8 @@ public class SubTelaActivity extends BaseTela {
     @Override protected String titulo() {
         switch (tela) {
             case "som": return "Som e vibração";
-            case "fonte": return "Teclas e fontes";
+            case "teclas": return "Teclas";
+            case "fonte": return "Fontes e estilo do texto";
             case "flutuante": return "Teclado flutuante";
             default: return "Aparência";
         }
@@ -52,6 +53,19 @@ public class SubTelaActivity extends BaseTela {
                     on -> sp.edit().putBoolean("vibrar", on).apply()));
                 break;
             }
+            case "teclas": {
+                Ui.add(c, Ui.switchItem(this, "Controle do cursor", "Pressione a barra de espaço e arraste para mover o cursor",
+                    sp.getBoolean("cursor", true), on -> sp.edit().putBoolean("cursor", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Linha numérica adicional", "Números 1-0 acima das letras",
+                    sp.getBoolean("linhanum", true), on -> sp.edit().putBoolean("linhanum", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Popup ao pressionar uma tecla", "Mostra a letra ampliada; segurando, abre as opções (acentos e símbolos) para escolher",
+                    sp.getBoolean("popup", true), on -> sp.edit().putBoolean("popup", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Caracteres especiais — @, #, %", "Símbolos pequenos nos cantos das teclas",
+                    sp.getBoolean("especiais", true), on -> sp.edit().putBoolean("especiais", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Ajuste automático", "A barra de sugestões aparece sozinha quando você digita",
+                    sp.getBoolean("autosug", true), on -> sp.edit().putBoolean("autosug", on).apply()));
+                break;
+            }
             case "fonte": {
                 Ui.add(c, Ui.radio(this, new String[]{"Padrão", "Negrito", "Itálico", "Serifada", "Mono", "Cursiva",
                     "Personalizada (arquivo)"}, sp.getInt("fonte", 0), x -> sp.edit().putInt("fonte", x).apply()));
@@ -64,7 +78,7 @@ public class SubTelaActivity extends BaseTela {
                 break;
             }
             case "flutuante": {
-                Ui.add(c, Ui.switchItem(this, "Teclado flutuante", "Arraste pela alça; toque em \"arraste\" para ver os cantos de redimensionar",
+                Ui.add(c, Ui.switchItem(this, "Teclado flutuante", "Arraste tocando nas margens de cima ou de baixo; os cantos de redimensionar aparecem ao tocar",
                     sp.getBoolean("flutuante", false), on -> sp.edit().putBoolean("flutuante", on).apply()));
                 Ui.add(c, Ui.item(this, "Resetar tamanho e posição", null, v -> {
                     sp.edit().remove("fw").remove("fesc").remove("fx").remove("fy").apply();
@@ -73,8 +87,6 @@ public class SubTelaActivity extends BaseTela {
                 break;
             }
             default: {
-                Ui.add(c, Ui.switchItem(this, "Linha numérica adicional", "Números 1-0 acima das letras; símbolos nos cantos das teclas (segure para digitar)",
-                    sp.getBoolean("linhanum", true), on -> sp.edit().putBoolean("linhanum", on).apply()));
                 Ui.add(c, Ui.seekItem(this, "Altura das teclas", 36, 64, sp.getInt("altura", 48), " dp",
                     x -> sp.edit().putInt("altura", x).apply()));
                 Ui.add(c, Ui.seekItem(this, "Espaço entre as teclas", 1, 6, sp.getInt("espac", 2), " dp",
