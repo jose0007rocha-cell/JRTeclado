@@ -23,6 +23,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.graphics.RectF;
+import android.text.InputType;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.text.Normalizer;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.SentenceSuggestionsInfo;
 import android.view.textservice.SpellCheckerSession;
@@ -270,7 +275,7 @@ public class TecladoService extends InputMethodService {
         box.setBackground(bgd);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(8), dp(12), dp(8), dp(12));
+        col.setPadding(dp(8), dp(4), dp(8), dp(6));
         final int[] pos = {sp.getInt("fx", dp(20)), sp.getInt("fy", dp(80))};
         final float[] last = new float[2];
         col.setOnTouchListener((v, e) -> {
@@ -408,7 +413,14 @@ public class TecladoService extends InputMethodService {
         p.setOrientation(LinearLayout.HORIZONTAL);
         p.setGravity(Gravity.CENTER_VERTICAL);
         p.setBackgroundColor(Tema.comAlpha(tema.barraCor, tema.barraAlpha));
-        p.addView(icone(0, false, 1f, v -> { modoSug = !modoSug; render(); }));
+        p.addView(icone(0, false, 1f, v -> {
+            if (!sp.getBoolean("sug_palavras", true)) {
+                Toast.makeText(this, "Sugestões desativadas em Configurações > Barra superior", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            modoSug = !modoSug;
+            render();
+        }));
         if (!modoSug) {
             p.addView(icone(1, false, 1f, v -> { modo = (modo == 4) ? 0 : 4; render(); }));
             p.addView(icone(2, false, 1f, v -> traduzir()));
@@ -527,7 +539,14 @@ public class TecladoService extends InputMethodService {
         } else if (dica != null) {
             k.setOnLongClickListener(v -> { feedback(v); digitar(dica); return true; });
         }
-        k.setOnTouchListener((v, e) -> { pressAnim(v, e); toqueLetra(v, e, rot, pop); return false; });
+        k.setTag(Character.valueOf(Character.toLowerCase(c)));
+        letraViews.add(k);
+        k.setOnTouchListener((v, e) -> {
+            if (deslizar(v, e)) return true;
+            pressAnim(v, e);
+            toqueLetra(v, e, rot, pop);
+            return false;
+        });
         return k;
     }
 
@@ -592,6 +611,7 @@ public class TecladoService extends InputMethodService {
     }
 
     void letras(LinearLayout root) {
+        letraViews.clear();
         LinearLayout l1 = linha();
         boolean numRow = sp.getBoolean("linhanum", true);
         boolean esp = sp.getBoolean("especiais", true);
@@ -756,7 +776,23 @@ public class TecladoService extends InputMethodService {
         }
     }
 
-    // ---------- sugestoes (autocorrecao) ----------
+    // ---------- sugestoes (palavras, emoji, e-mail) ----------
+    final String[] sugTxt = {"", "", ""};
+    final int[] sugApagar = new int[3];
+    final boolean[] sugEsp = new boolean[3];
+    static final String[] DOMINIOS = {"gmail.com", "hotmail.com", "outlook.com", "yahoo.com.br", "icloud.com"};
+    static final String[][] EMOJI_MAP = {
+        {"oi", "👋"}, {"ola", "👋"}, {"tchau", "👋"}, {"feliz", "😀"}, {"alegre", "😄"}, {"rir", "😂"},
+        {"kkk", "😂"}, {"risada", "🤣"}, {"triste", "😢"}, {"chorar", "😭"}, {"choro", "😭"}, {"amor", "😍"},
+        {"amo", "😍"}, {"coracao", "❤️"}, {"beijo", "😘"}, {"legal", "👍"}, {"ok", "👌"}, {"joia", "👍"},
+        {"parabens", "🎉"}, {"festa", "🎉"}, {"fogo", "🔥"}, {"quente", "🔥"}, {"frio", "🥶"}, {"sono", "😴"},
+        {"dormir", "😴"}, {"raiva", "😡"}, {"medo", "😱"}, {"pensando", "🤔"}, {"duvida", "🤔"},
+        {"obrigado", "🙏"}, {"obrigada", "🙏"}, {"deus", "🙏"}, {"paz", "✌️"}, {"forca", "💪"}, {"musica", "🎵"},
+        {"sol", "☀️"}, {"lua", "🌙"}, {"chuva", "🌧️"}, {"pizza", "🍕"}, {"cafe", "☕"}, {"cerveja", "🍺"},
+        {"carro", "🚗"}, {"casa", "🏠"}, {"dinheiro", "💰"}, {"estrela", "⭐"}, {"flor", "🌸"}, {"gato", "🐱"},
+        {"cachorro", "🐶"}, {"bebe", "👶"}, {"sim", "✅"}, {"nao", "❌"}
+    };
+
     final SpellCheckerSession.SpellCheckerSessionListener spellL = new SpellCheckerSession.SpellCheckerSessionListener() {
         @Override public void onGetSuggestions(SuggestionsInfo[] r) {
             final List<String> l = new ArrayList<>();
@@ -795,16 +831,71 @@ public class TecladoService extends InputMethodService {
         return s.substring(i);
     }
 
-    void setSug(int i, String s) {
-        if (sug[i] != null) sug[i].setText(s);
+    String tokenAntes() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return "";
+        CharSequence cs = ic.getTextBeforeCursor(60, 0);
+        if (cs == null) return "";
+        String s = cs.toString();
+        int i = s.length();
+        while (i > 0 && !Character.isWhitespace(s.charAt(i - 1))) i--;
+        return s.substring(i);
+    }
+
+    boolean campoEmail() {
+        if (ei == null) return false;
+        int cls = ei.inputType & InputType.TYPE_MASK_CLASS;
+        int vr = ei.inputType & InputType.TYPE_MASK_VARIATION;
+        return cls == InputType.TYPE_CLASS_TEXT
+            && (vr == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS || vr == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS);
+    }
+
+    void defSug(int i, String txt, int apagar, boolean esp) {
+        sugTxt[i] = txt;
+        sugApagar[i] = apagar;
+        sugEsp[i] = esp;
+        if (sug[i] != null) sug[i].setText(txt);
+    }
+
+    void limparSug() {
+        for (int i = 0; i < 3; i++) defSug(i, "", 0, false);
+    }
+
+    String emojiPara(String w) {
+        String b = baseDe(w);
+        for (String[] m : EMOJI_MAP) if (baseDe(m[0]).equals(b)) return m[1];
+        return null;
     }
 
     void atualizarSugestoes() {
         if (!modoSug || sug[0] == null) return;
+        if (!sp.getBoolean("sug_palavras", true)) { limparSug(); return; }
+        String tok = tokenAntes();
+        if (sp.getBoolean("sug_email", true) && !tok.isEmpty() && (tok.indexOf('@') >= 0 || campoEmail())) {
+            palavraPedida = "";
+            int at = tok.indexOf('@');
+            if (at >= 0) {
+                String parcial = tok.substring(at + 1).toLowerCase();
+                int n = 0;
+                for (String d : DOMINIOS) {
+                    if (n < 3 && d.startsWith(parcial) && !d.equals(parcial)) defSug(n++, d, parcial.length(), false);
+                }
+                for (; n < 3; n++) defSug(n, "", 0, false);
+            } else {
+                for (int i = 0; i < 3; i++) defSug(i, "@" + DOMINIOS[i], 0, false);
+            }
+            return;
+        }
         String w = palavraAtual();
-        if (w.isEmpty()) { for (int i = 0; i < 3; i++) setSug(i, ""); return; }
+        if (w.isEmpty()) { palavraPedida = ""; limparSug(); return; }
         palavraPedida = w;
-        setSug(0, w); setSug(1, ""); setSug(2, "");
+        defSug(0, w, w.length(), true);
+        defSug(1, "", 0, false);
+        defSug(2, "", 0, false);
+        if (sp.getBoolean("sug_emoji", true)) {
+            String em = emojiPara(w);
+            if (em != null) defSug(2, em, w.length(), true);
+        }
         if (spell == null) iniciarSpell();
         if (spell != null) {
             try { spell.getSuggestions(new TextInfo(w), 3); } catch (Exception e) { }
@@ -812,21 +903,22 @@ public class TecladoService extends InputMethodService {
     }
 
     void mostrarSugestoes(List<String> l) {
-        if (!modoSug || !palavraPedida.equals(palavraAtual())) return;
-        setSug(0, palavraPedida);
-        setSug(1, l.size() > 0 ? l.get(0) : "");
-        setSug(2, l.size() > 1 ? l.get(1) : "");
+        if (!modoSug || palavraPedida.isEmpty() || !palavraPedida.equals(palavraAtual())) return;
+        int n = palavraPedida.length();
+        String em = sp.getBoolean("sug_emoji", true) ? emojiPara(palavraPedida) : null;
+        defSug(0, palavraPedida, n, true);
+        defSug(1, l.size() > 0 ? l.get(0) : "", n, true);
+        if (em != null) defSug(2, em, n, true);
+        else defSug(2, l.size() > 1 ? l.get(1) : "", n, true);
     }
 
     void aplicarSugestao(int i) {
-        if (sug[i] == null) return;
-        String s = sug[i].getText().toString();
-        if (s.isEmpty()) return;
+        String s = sugTxt[i];
+        if (s == null || s.isEmpty()) return;
         InputConnection ic = getCurrentInputConnection();
         if (ic == null) return;
-        String pa = palavraAtual();
-        ic.deleteSurroundingText(pa.length(), 0);
-        ic.commitText(s + " ", 1);
+        if (sugApagar[i] > 0) ic.deleteSurroundingText(sugApagar[i], 0);
+        ic.commitText(s + (sugEsp[i] ? " " : ""), 1);
         h.removeCallbacks(rodaSug);
         h.postDelayed(rodaSug, 100);
     }
@@ -835,6 +927,157 @@ public class TecladoService extends InputMethodService {
         if (!modoSug) return;
         h.removeCallbacks(rodaSug);
         h.postDelayed(rodaSug, 120);
+    }
+
+    // ---------- digitacao deslizante ----------
+    List<View> letraViews = new ArrayList<>();
+    boolean swAtivo = false;
+    float swX, swY;
+    StringBuilder swSeq = new StringBuilder();
+    List<RectF> swRects = new ArrayList<>();
+    List<Character> swChars = new ArrayList<>();
+    TrilhaView trilha;
+    String[] dicPal, dicBase;
+
+    static String baseDe(String w) {
+        String n = Normalizer.normalize(w.toLowerCase(), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n.length(); i++) {
+            char c = n.charAt(i);
+            if (c >= 'a' && c <= 'z' && (sb.length() == 0 || sb.charAt(sb.length() - 1) != c)) sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    void carregarDic() {
+        if (dicPal != null) return;
+        List<String> l = new ArrayList<>();
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.palavras), "UTF-8"))) {
+            String s;
+            while ((s = r.readLine()) != null) {
+                s = s.trim();
+                if (!s.isEmpty()) l.add(s);
+            }
+        } catch (Exception e) { }
+        dicPal = l.toArray(new String[0]);
+        dicBase = new String[dicPal.length];
+        for (int i = 0; i < dicPal.length; i++) dicBase[i] = baseDe(dicPal[i]);
+    }
+
+    String melhorPalavra(String seq) {
+        carregarDic();
+        if (seq.length() < 2) return null;
+        char first = seq.charAt(0), last = seq.charAt(seq.length() - 1);
+        double melhor = 1e9;
+        String res = null;
+        for (int i = 0; i < dicBase.length; i++) {
+            String b = dicBase[i];
+            if (b.isEmpty() || b.charAt(0) != first || b.charAt(b.length() - 1) != last) continue;
+            int j = 0;
+            for (int k = 0; k < seq.length() && j < b.length(); k++) if (seq.charAt(k) == b.charAt(j)) j++;
+            if (j < b.length()) continue;
+            double sc = (seq.length() - b.length()) + i / 300.0;
+            if (sc < melhor) { melhor = sc; res = dicPal[i]; }
+        }
+        return res;
+    }
+
+    boolean deslizar(View v, MotionEvent e) {
+        if (!sp.getBoolean("deslizar", true)) return false;
+        switch (e.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                swX = e.getRawX(); swY = e.getRawY(); swAtivo = false;
+                return false;
+            case MotionEvent.ACTION_MOVE: {
+                if (!swAtivo) {
+                    if (opcoesView != null) return false;
+                    float dx = e.getRawX() - swX, dy = e.getRawY() - swY;
+                    float lim = dp(22);
+                    if (dx * dx + dy * dy < lim * lim) return false;
+                    iniciarDeslize(v);
+                }
+                acompanharDeslize(e);
+                return true;
+            }
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (swAtivo) {
+                    acompanharDeslize(e);
+                    finalizarDeslize(e.getActionMasked() == MotionEvent.ACTION_UP);
+                    v.setPressed(false);
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(60).start();
+                    return true;
+                }
+                return false;
+        }
+        return false;
+    }
+
+    void iniciarDeslize(View v) {
+        swAtivo = true;
+        v.cancelLongPress();
+        esconderBolha();
+        fecharOpcoes();
+        swRects.clear();
+        swChars.clear();
+        for (View k : letraViews) {
+            int[] p = new int[2];
+            k.getLocationOnScreen(p);
+            swRects.add(new RectF(p[0], p[1], p[0] + k.getWidth(), p[1] + k.getHeight()));
+            swChars.add((Character) k.getTag());
+        }
+        swSeq.setLength(0);
+        Object tg = v.getTag();
+        if (tg instanceof Character) swSeq.append(((Character) tg).charValue());
+        if (overlay != null) {
+            trilha = new TrilhaView(this, tema.linhaCor);
+            overlay.addView(trilha, new FrameLayout.LayoutParams(-1, -1));
+            trilha.add(swX, swY);
+        }
+    }
+
+    void pontoDeslize(float x, float y) {
+        if (trilha != null) trilha.add(x, y);
+        for (int i = 0; i < swRects.size(); i++) {
+            if (swRects.get(i).contains(x, y)) {
+                char c = swChars.get(i).charValue();
+                if (swSeq.length() == 0 || swSeq.charAt(swSeq.length() - 1) != c) swSeq.append(c);
+                break;
+            }
+        }
+    }
+
+    void acompanharDeslize(MotionEvent e) {
+        float ox = e.getRawX() - e.getX(), oy = e.getRawY() - e.getY();
+        int n = e.getHistorySize();
+        for (int i = 0; i < n; i++) pontoDeslize(e.getHistoricalX(i) + ox, e.getHistoricalY(i) + oy);
+        pontoDeslize(e.getRawX(), e.getRawY());
+    }
+
+    void finalizarDeslize(boolean ok) {
+        swAtivo = false;
+        final TrilhaView tv = trilha;
+        trilha = null;
+        if (tv != null) {
+            h.postDelayed(new Runnable() {
+                @Override public void run() {
+                    if (tv.getParent() instanceof ViewGroup) ((ViewGroup) tv.getParent()).removeView(tv);
+                }
+            }, 200);
+        }
+        if (!ok) return;
+        String w = melhorPalavra(swSeq.toString());
+        if (w == null) return;
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+        if (caps) w = w.toUpperCase();
+        else if (shift) w = w.substring(0, 1).toUpperCase() + w.substring(1);
+        ic.commitText(w + " ", 1);
+        if (ei != null && !caps) {
+            boolean ns = ic.getCursorCapsMode(ei.inputType) != 0;
+            if (ns != shift) { shift = ns; render(); }
+        }
+        pedirSugestoes();
     }
 
     // ---------- popup ao pressionar (bolha e opcoes) ----------
@@ -1017,7 +1260,7 @@ public class TecladoService extends InputMethodService {
             boolean ns = ic.getCursorCapsMode(ei.inputType) != 0;
             if (ns != shift) { shift = ns; render(); }
         }
-        if (sp.getBoolean("autosug", true) && !modoSug && Character.isLetter(s.codePointAt(0))) {
+        if (sp.getBoolean("autosug", true) && sp.getBoolean("sug_palavras", true) && !modoSug && Character.isLetter(s.codePointAt(0))) {
             modoSug = true;
             render();
         } else {

@@ -162,6 +162,9 @@ public class EditorTemaActivity extends BaseTela {
             x -> { t.barraAlpha = x * 255 / 100; alterado(true); }));
         Ui.add(cb, Ui.corItem(this, "Cor dos ícones e do texto", t.barraTexto, x -> { t.barraTexto = x; alterado(true); }));
         col.addView(cb);
+        LinearLayout cl = Ui.cartao(this);
+        Ui.add(cl, Ui.corItem(this, "Cor da linha de entrada contínua", t.linhaCor, x -> { t.linhaCor = x; alterado(false); }));
+        col.addView(cl);
 
         col.addView(Ui.secao(this, "Cor de destaque"));
         LinearLayout cd = Ui.cartao(this);

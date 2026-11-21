@@ -23,6 +23,8 @@ public class SubTelaActivity extends BaseTela {
         switch (tela) {
             case "som": return "Som e vibração";
             case "teclas": return "Teclas";
+            case "barra": return "Barra superior";
+            case "gestos": return "Gestos";
             case "fonte": return "Fontes e estilo do texto";
             case "flutuante": return "Teclado flutuante";
             default: return "Aparência";
@@ -51,6 +53,20 @@ public class SubTelaActivity extends BaseTela {
                     x -> sp.edit().putInt("vol", x).apply()));
                 Ui.add(c, Ui.switchItem(this, "Vibração ao tocar", null, sp.getBoolean("vibrar", true),
                     on -> sp.edit().putBoolean("vibrar", on).apply()));
+                break;
+            }
+            case "barra": {
+                Ui.add(c, Ui.switchItem(this, "Mostrar sugestões de palavras", "Usa o corretor ortográfico do Android",
+                    sp.getBoolean("sug_palavras", true), on -> sp.edit().putBoolean("sug_palavras", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Sugestões de emoji", "Ao digitar uma palavra como \"amor\" ou \"fogo\", sugere o emoji",
+                    sp.getBoolean("sug_emoji", true), on -> sp.edit().putBoolean("sug_emoji", on).apply()));
+                Ui.add(c, Ui.switchItem(this, "Sugerir um e-mail", "Completa domínios como @gmail.com em campos de e-mail",
+                    sp.getBoolean("sug_email", true), on -> sp.edit().putBoolean("sug_email", on).apply()));
+                break;
+            }
+            case "gestos": {
+                Ui.add(c, Ui.switchItem(this, "Ativar digitação deslizante", "Deslize o dedo pelas letras para formar palavras (dicionário básico em português)",
+                    sp.getBoolean("deslizar", true), on -> sp.edit().putBoolean("deslizar", on).apply()));
                 break;
             }
             case "teclas": {

@@ -43,6 +43,7 @@ public class Tema {
     public boolean bgGrad, contorno, raioCustom = true;
     public int contornoLargura = 1;
     public Grupo principal, funcao, enter, espaco;
+    public int linhaCor;
 
     // estilo: 0 plano, 1 neon, 2 relevo suave, 3 pilula 3D
     // efeito: 0 nenhum, 1 neve, 2 folhas
@@ -61,6 +62,7 @@ public class Tema {
             o.put("raioV2", true); o.put("raioCustom", raioCustom); o.put("contornoLargura", contornoLargura);
             o.put("barraCor", barraCor); o.put("barraAlpha", barraAlpha); o.put("barraTexto", barraTexto);
             o.put("efeito", efeito);
+            o.put("linhaCor", linhaCor);
             o.put("p", principal.toJson()); o.put("f", funcao.toJson());
             o.put("e", enter.toJson()); o.put("s", espaco.toJson());
         } catch (JSONException e) { }
@@ -78,6 +80,7 @@ public class Tema {
         t.contornoLargura = o.optInt("contornoLargura", 1);
         t.barraCor = o.optInt("barraCor", t.bg); t.barraAlpha = o.optInt("barraAlpha", 0);
         t.barraTexto = o.optInt("barraTexto", 0xFFFFFFFF); t.efeito = o.optInt("efeito", 0);
+        t.linhaCor = o.optInt("linhaCor", t.accent);
         t.principal = grupo(o, "p", 0xFF3A3A3A, 0xFFFFFFFF);
         t.funcao = grupo(o, "f", 0xFF2E2E2E, t.accent);
         t.enter = grupo(o, "e", 0xFF2E2E2E, t.accent);
@@ -104,6 +107,7 @@ public class Tema {
         t.id = id; t.nome = nome; t.bg = bg; t.bgGrad = bgGrad; t.accent = accent;
         t.contorno = contorno; t.corContorno = corContorno; t.raio = raio; t.estilo = estilo;
         t.barraCor = bg; t.barraAlpha = 0; t.barraTexto = text;
+        t.linhaCor = accent;
         t.principal = new Grupo(key, text);
         t.funcao = new Grupo(special, accent);
         t.enter = new Grupo(special, accent);
