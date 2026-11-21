@@ -73,6 +73,8 @@ public class SubTelaActivity extends BaseTela {
                 break;
             }
             default: {
+                Ui.add(c, Ui.switchItem(this, "Linha numérica adicional", "Números 1-0 acima das letras; símbolos nos cantos das teclas (segure para digitar)",
+                    sp.getBoolean("linhanum", true), on -> sp.edit().putBoolean("linhanum", on).apply()));
                 Ui.add(c, Ui.seekItem(this, "Altura das teclas", 36, 64, sp.getInt("altura", 48), " dp",
                     x -> sp.edit().putInt("altura", x).apply()));
                 Ui.add(c, Ui.seekItem(this, "Espaço entre as teclas", 1, 6, sp.getInt("espac", 2), " dp",

@@ -44,7 +44,7 @@ public class TeclaDrawable extends Drawable {
     @Override public void draw(Canvas c) {
         Rect b = getBounds();
         float w = b.width(), h = b.height();
-        float rad = Math.min(t.raio * d, Math.min(w, h) / 2f);
+        float rad = Math.min(t.raioEf() * d, Math.min(w, h) / 2f);
         float m = (t.estilo == 2 ? 4 : 1.5f) * d;
         float baixo = (t.estilo == 3 && g.sombra) ? 2 * d : 0;
         r.set(b.left + m, b.top + m, b.right - m, b.bottom - m - baixo);
@@ -118,7 +118,7 @@ public class TeclaDrawable extends Drawable {
         // contorno e destaque ao tocar
         if (t.contorno || pressed) {
             p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth((pressed ? 1.5f : 1.2f) * d);
+            p.setStrokeWidth((pressed ? Math.max(1.5f, t.contornoLargura) : t.contornoLargura) * d);
             p.setColor(pressed ? Tema.comAlpha(t.accent, 190) : t.corContorno);
             c.drawRoundRect(r, rad, rad, p);
             p.setStyle(Paint.Style.FILL);

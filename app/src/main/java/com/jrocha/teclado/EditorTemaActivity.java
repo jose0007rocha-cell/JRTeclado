@@ -99,9 +99,11 @@ public class EditorTemaActivity extends BaseTela {
 
         col.addView(Ui.secao(this, "Aparência das teclas"));
         LinearLayout ca = Ui.cartao(this);
+        Ui.add(ca, Ui.switchItem(this, "Raio dos cantos personalizado", null, t.raioCustom, on -> { t.raioCustom = on; alterado(true); }));
         Ui.add(ca, Ui.seekItem(this, "Raio dos cantos", 0, 40, t.raio, " dp", x -> { t.raio = x; alterado(true); }));
         Ui.add(ca, Ui.switchItem(this, "Contorno da tecla", null, t.contorno, on -> { t.contorno = on; alterado(true); }));
         Ui.add(ca, Ui.corItem(this, "Cor do contorno", t.corContorno, x -> { t.corContorno = x; alterado(true); }));
+        Ui.add(ca, Ui.seekItem(this, "Largura do contorno", 1, 6, t.contornoLargura, " dp", x -> { t.contornoLargura = x; alterado(true); }));
         col.addView(ca);
 
         col.addView(Ui.secao(this, "Barra superior"));
@@ -116,12 +118,6 @@ public class EditorTemaActivity extends BaseTela {
         LinearLayout cd = Ui.cartao(this);
         Ui.add(cd, Ui.corItem(this, "Brilho, contorno ao tocar e alça", t.accent, x -> { t.accent = x; alterado(true); }));
         col.addView(cd);
-
-        col.addView(Ui.secao(this, "Efeitos"));
-        LinearLayout cx = Ui.cartao(this);
-        Ui.add(cx, Ui.radio(this, new String[]{"Sem efeito", "Neve", "Queda de folhas"}, t.efeito,
-            x -> { t.efeito = x; alterado(false); }));
-        col.addView(cx);
 
         col.addView(Ui.secao(this, "Teste"));
         LinearLayout ct = Ui.cartao(this);

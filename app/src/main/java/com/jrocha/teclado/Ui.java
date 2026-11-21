@@ -354,7 +354,7 @@ public class Ui {
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setBackgroundColor(Tema.comAlpha(t.barraCor, t.barraAlpha));
         for (int tp = 0; tp < 5; tp++) {
-            IconeView iv = new IconeView(c, tp, t.barraTexto, tp == 4);
+            IconeView iv = new IconeView(c, tp == 4 ? 6 : tp, t.barraTexto, false);
             iv.setLayoutParams(new LinearLayout.LayoutParams(0, dp(c, 34), 1f));
             bar.addView(iv);
         }

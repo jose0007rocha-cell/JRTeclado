@@ -40,7 +40,8 @@ public class Tema {
 
     public String id, nome;
     public int bg, accent, estilo, raio = 12, corContorno, barraCor, barraAlpha = 0, barraTexto, efeito = 0;
-    public boolean bgGrad, contorno;
+    public boolean bgGrad, contorno, raioCustom = true;
+    public int contornoLargura = 1;
     public Grupo principal, funcao, enter, espaco;
 
     // estilo: 0 plano, 1 neon, 2 relevo suave, 3 pilula 3D
@@ -57,6 +58,7 @@ public class Tema {
             o.put("id", id); o.put("nome", nome); o.put("bg", bg); o.put("bgGrad", bgGrad);
             o.put("accent", accent); o.put("estilo", estilo); o.put("raio", raio);
             o.put("contorno", contorno); o.put("corContorno", corContorno);
+            o.put("raioCustom", raioCustom); o.put("contornoLargura", contornoLargura);
             o.put("barraCor", barraCor); o.put("barraAlpha", barraAlpha); o.put("barraTexto", barraTexto);
             o.put("efeito", efeito);
             o.put("p", principal.toJson()); o.put("f", funcao.toJson());
@@ -72,6 +74,8 @@ public class Tema {
         t.accent = o.optInt("accent", 0xFFB584FF); t.estilo = o.optInt("estilo", 0);
         t.raio = o.optInt("raio", 12); t.contorno = o.optBoolean("contorno", false);
         t.corContorno = o.optInt("corContorno", 0xFF555555);
+        t.raioCustom = o.optBoolean("raioCustom", true);
+        t.contornoLargura = o.optInt("contornoLargura", 1);
         t.barraCor = o.optInt("barraCor", t.bg); t.barraAlpha = o.optInt("barraAlpha", 0);
         t.barraTexto = o.optInt("barraTexto", 0xFFFFFFFF); t.efeito = o.optInt("efeito", 0);
         t.principal = grupo(o, "p", 0xFF3A3A3A, 0xFFFFFFFF);
@@ -112,6 +116,8 @@ public class Tema {
         pronto("b1", "Claro Suave", 0xFFF4F4FC, false, 0xFFE8E9F8, 0xFFE2E4F6, 0xFF4B4F8F, 0xFFE8793A, false, 0xFFFFFFFF, 12, 2),
         pronto("b2", "Escuro Pílula", 0xFF2A2A2A, true, 0xFF3B3B3D, 0xFF343436, 0xFFFFFFFF, 0xFFFFA000, false, 0x00000000, 40, 3)
     };
+
+    public int raioEf() { return raioCustom ? raio : 12; }
 
     public boolean ePronto() { return id.startsWith("b"); }
 

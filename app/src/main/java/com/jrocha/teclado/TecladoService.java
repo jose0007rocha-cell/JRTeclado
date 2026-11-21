@@ -45,6 +45,7 @@ public class TecladoService extends InputMethodService {
     public static TecladoService instancia;
 
     static final String[] ESTILOS = {"Normal", "BIG", "Random", "Bold", "Italic", "Cursivo", "Mono", "Largo", "Círculo"};
+    static final String H1 = "%\\|=[]<>{}", H2 = "@#$_&-+()", H3 = "*\"':;!?";
     static final String[] EMOJIS = {
         "😀","😂","🤣","😊","😍","😘","😎","🤔",
         "😢","😭","😡","👍","👎","👏","🙏","💪",
@@ -364,7 +365,6 @@ public class TecladoService extends InputMethodService {
         else simbolos(root);
         root.addView(barraInferior());
         wrap.addView(root, new FrameLayout.LayoutParams(-1, -2));
-        if (tema.efeito != 0) wrap.addView(new EfeitoView(this, tema.efeito), new FrameLayout.LayoutParams(-1, -1));
         return wrap;
     }
 
@@ -408,7 +408,7 @@ public class TecladoService extends InputMethodService {
                 p.addView(t, new LinearLayout.LayoutParams(0, dp(40), 1.6f));
             }
         }
-        p.addView(icone(4, true, 1f, v -> voz()));
+        p.addView(icone(6, false, 1f, v -> alternarFlutuante()));
         return p;
     }
 
@@ -417,12 +417,7 @@ public class TecladoService extends InputMethodService {
         l.setOrientation(LinearLayout.HORIZONTAL);
         l.setGravity(Gravity.CENTER_VERTICAL);
         l.addView(icone(5, false, 1f, v -> requestHideSelf(0)));
-        l.addView(textoBotao("Aa  " + ESTILOS[estilo], 2f, v -> {
-            estilo = (estilo + 1) % ESTILOS.length;
-            sp.edit().putInt("estilo", estilo).apply();
-            render();
-        }));
-        l.addView(textoBotao("◐  tema", 1.5f, v -> {
+        l.addView(textoBotao("◐  tema", 3f, v -> {
             List<Tema> todos = Tema.todos(sp);
             String atual = sp.getString("tema_id", "b0");
             int idx = 0;
@@ -432,7 +427,6 @@ public class TecladoService extends InputMethodService {
             render();
             if (flutuante) mostrarFlutuante();
         }));
-        l.addView(icone(6, false, 1f, v -> alternarFlutuante()));
         return l;
     }
 
@@ -479,11 +473,11 @@ public class TecladoService extends InputMethodService {
         if (dica != null) {
             TextView d = new TextView(this);
             d.setText(dica);
-            d.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-            d.setTextColor(Tema.comAlpha(tema.principal.texto, 150));
-            d.setGravity(Gravity.CENTER_HORIZONTAL);
-            d.setPadding(0, dp(2), 0, 0);
-            f.addView(d, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+            d.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10 * escW);
+            d.setTextColor(Tema.comAlpha(tema.principal.texto, 170));
+            d.setGravity(Gravity.END);
+            d.setPadding(0, dp(2), dp(6), 0);
+            f.addView(d, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP | Gravity.END));
         }
         f.setOnTouchListener((v, e) -> { pressAnim(v, e); return false; });
         if (ck != null) f.setOnClickListener(v -> { feedback(v); ck.onClick(v); });
@@ -528,12 +522,14 @@ public class TecladoService extends InputMethodService {
 
     void letras(LinearLayout root) {
         LinearLayout l1 = linha();
+        boolean numRow = sp.getBoolean("linhanum", true);
         String r1 = "qwertyuiop";
-        for (int i = 0; i < r1.length(); i++) l1.addView(letra(r1.charAt(i), String.valueOf((i + 1) % 10)));
+        for (int i = 0; i < r1.length(); i++)
+            l1.addView(letra(r1.charAt(i), numRow ? String.valueOf(H1.charAt(i)) : String.valueOf((i + 1) % 10)));
         LinearLayout l2 = linha();
         l2.addView(espaco(0.5f));
         String r2 = "asdfghjkl";
-        for (int i = 0; i < r2.length(); i++) l2.addView(letra(r2.charAt(i), null));
+        for (int i = 0; i < r2.length(); i++) l2.addView(letra(r2.charAt(i), String.valueOf(H2.charAt(i))));
         l2.addView(espaco(0.5f));
         LinearLayout l3 = linha();
         l3.addView(tecla(caps ? "⇪" : "⇧", null, 1.5f, tema.funcao, v -> {
@@ -545,7 +541,7 @@ public class TecladoService extends InputMethodService {
             render();
         }));
         String r3 = "zxcvbnm";
-        for (int i = 0; i < r3.length(); i++) l3.addView(letra(r3.charAt(i), null));
+        for (int i = 0; i < r3.length(); i++) l3.addView(letra(r3.charAt(i), String.valueOf(H3.charAt(i))));
         l3.addView(teclaApagar());
         LinearLayout l4 = linha();
         l4.addView(tecla("?123", null, 1.4f, tema.funcao, v -> { modo = 1; render(); }));
@@ -554,6 +550,14 @@ public class TecladoService extends InputMethodService {
         l4.addView(teclaEspaco());
         l4.addView(tecla(".", "!?", 1f, tema.principal, v -> digitar(".")));
         l4.addView(teclaEnter());
+        if (numRow) {
+            LinearLayout l0 = linha();
+            for (int i = 0; i < 10; i++) {
+                final String dg = String.valueOf((i + 1) % 10);
+                l0.addView(tecla(dg, null, 1f, tema.principal, v -> digitar(dg)));
+            }
+            root.addView(l0);
+        }
         root.addView(l1); root.addView(l2); root.addView(l3); root.addView(l4);
     }
 
@@ -650,20 +654,6 @@ public class TecladoService extends InputMethodService {
         startActivity(i);
     }
 
-    void voz() {
-        Intent i = new Intent(this, VozActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(i);
-    }
-
-    public void inserirTexto(final String s) {
-        h.postDelayed(new Runnable() {
-            @Override public void run() {
-                InputConnection ic = getCurrentInputConnection();
-                if (ic != null) ic.commitText(s + " ", 1);
-            }
-        }, 500);
-    }
 
     void traduzir() {
         InputConnection ic = getCurrentInputConnection();
